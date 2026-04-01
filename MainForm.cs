@@ -130,7 +130,7 @@ namespace AlgeriaRechargeDesktop
 
             cbOperator.Items.AddRange(new object[] { "Djezzy", "Ooredoo", "Mobilis" });
             if (cbOperator.Items.Count > 0)
-                cbPort.SelectedIndex = 0;
+                cbOperator.SelectedIndex = 0;
 
             btnRecharge.Click += (s, e) =>
             {
@@ -141,4 +141,15 @@ namespace AlgeriaRechargeDesktop
                 if (string.IsNullOrEmpty(portName) || string.IsNullOrEmpty(voucherCode))
                 {
                     MessageBox.Show("COM Port and Voucher code are required.");
-                    
+                    return;
+                }
+
+                string ussdCode = operatorName switch
+                {
+                    "Djezzy"  => $"*138*{voucherCode}#",
+                    "Ooredoo" => $"*115*{voucherCode}#",
+                    "Mobilis" => $"*111*{voucherCode}#",
+                    _         => null
+                };
+
+                if 
