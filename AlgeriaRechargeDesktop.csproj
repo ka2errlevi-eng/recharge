@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU</Platforms>
+    <!-- Self‑contained: bundle .NET 8 with the .exe -->
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
