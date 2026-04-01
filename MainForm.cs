@@ -130,7 +130,7 @@ namespace AlgeriaRechargeDesktop
 
             cbOperator.Items.AddRange(new object[] { "Djezzy", "Ooredoo", "Mobilis" });
             if (cbOperator.Items.Count > 0)
-                cbOperator.SelectedIndex = 0;
+                cbPort.SelectedIndex = 0;
 
             btnRecharge.Click += (s, e) =>
             {
@@ -141,75 +141,4 @@ namespace AlgeriaRechargeDesktop
                 if (string.IsNullOrEmpty(portName) || string.IsNullOrEmpty(voucherCode))
                 {
                     MessageBox.Show("COM Port and Voucher code are required.");
-                    return;
-                }
-
-                string ussdCode = operatorName switch
-                {
-                    "Djezzy"  => $"*138*{voucherCode}#",
-                    "Ooredoo" => $"*115*{voucherCode}#",
-                    "Mobilis" => $"*111*{voucherCode}#",
-                    _         => null
-                };
-
-                if (string.IsNullOrEmpty(ussdCode))
-                {
-                    MessageBox.Show("Invalid operator.");
-                    return;
-                }
-
-                if (SendUssd(portName, ussdCode))
-                {
-                    Log($"Recharge sent: {ussdCode}");
-                    MessageBox.Show("Recharge USSD sent successfully.");
-                }
-                else
-                {
-                    Log("Recharge failed.");
-                    MessageBox.Show("Recharge failed. Check COM port or code.");
-                }
-            };
-
-            btnBalance.Click += (s, e) =>
-            {
-                var portName = cbPort.Text;
-                var operatorName = cbOperator.Text;
-
-                if (string.IsNullOrEmpty(portName) || string.IsNullOrEmpty(operatorName))
-                {
-                    MessageBox.Show("COM Port and Operator are required.");
-                    return;
-                }
-
-                string balanceCode = operatorName switch
-                {
-                    "Djezzy"  => "*710#",
-                    "Ooredoo" => "*200#",
-                    "Mobilis" => "*222#",
-                    _         => null
-                };
-
-                if (string.IsNullOrEmpty(balanceCode))
-                {
-                    MessageBox.Show("Invalid operator.");
-                    return;
-                }
-
-                if (SendUssd(portName, balanceCode))
-                {
-                    Log($"Balance check sent: {balanceCode}");
-                    MessageBox.Show("Balance check USSD sent successfully.");
-                }
-                else
-                {
-                    Log("Balance check failed.");
-                    MessageBox.Show("Balance check failed. Check COM port.");
-                }
-            };
-        }
-
-        private void Log(string msg)
-        {
-            if (!IsHandleCreated) return;
-            Invoke(new Action(() =>
-            
+                    
