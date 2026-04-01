@@ -1,4 +1,4 @@
-name: Build Windows GUI EXE
+name: Build Windows GUI EXE (self‑contained)
 
 on:
   push:
@@ -20,8 +20,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build Release (WinForms EXE)
-        run: dotnet publish -c Release -r win-x64 --self-contained false
+      - name: Build self‑contained EXE
+        run: dotnet publish -c Release -r win-x64 --self-contained true
 
       - name: Upload EXE as Artifact
         uses: actions/upload-artifact@v4
