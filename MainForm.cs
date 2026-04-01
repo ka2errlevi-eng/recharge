@@ -7,7 +7,9 @@ namespace AlgeriaRechargeDesktop
     public partial class MainForm : Form
     {
         private TextBox tbResult;
-        private ComboBox cbPort, cbOperator, tbPhone, btnRecharge, btnBalance;
+        private ComboBox cbPort;
+        private ComboBox cbOperator;
+        private TextBox tbPhone;
 
         private SerialPort _port = null;
 
@@ -110,12 +112,10 @@ namespace AlgeriaRechargeDesktop
             });
             this.Controls.Add(mainPanel);
 
-            // Save controls for reuse
+            // Save controls
             this.cbPort = cbPort;
             this.cbOperator = cbOperator;
             this.tbPhone = tbPhone;
-            this.btnRecharge = btnRecharge;
-            this.btnBalance = btnBalance;
             this.tbResult = tbResult;
 
             // Events
@@ -214,7 +214,7 @@ namespace AlgeriaRechargeDesktop
             if (!this.IsHandleCreated) return;
             this.Invoke(new Action(() =>
             {
-                this.tbResult.Text += DateTime.Now.ToString("HH:mm:ss") + " - " + msg + Environment.NewLine;
+                this.tbResult.AppendText($"{DateTime.Now:HH:mm:ss} - {msg}{Environment.NewLine}");
                 this.tbResult.SelectionStart = this.tbResult.Text.Length;
                 this.tbResult.ScrollToCaret();
             }));
@@ -304,7 +304,7 @@ namespace AlgeriaRechargeDesktop
                 catch (TimeoutException) { break; }
                 catch (System.IO.IOException ex)
                 {
-                    Log($"Exception reading response: {ex.Message}");
+                    Log($"IOException reading response: {ex.Message}");
                     break;
                 }
                 System.Threading.Thread.Sleep(200);
