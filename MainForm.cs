@@ -6,6 +6,9 @@ namespace AlgeriaRechargeDesktop
 {
     public partial class MainForm : Form
     {
+        private TextBox tbResult;
+        private ComboBox cbPort, cbOperator, tbPhone, btnRecharge, btnBalance;
+
         private SerialPort _port = null;
 
         public MainForm()
@@ -17,9 +20,7 @@ namespace AlgeriaRechargeDesktop
         {
             this.Text = "Algeria Mobile Recharge POS";
             this.Size = new System.Drawing.Size(480, 400);
-            this.StartPosition = FormStartPosition.CenterScreen;
 
-            // Panels
             var mainPanel = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -36,14 +37,12 @@ namespace AlgeriaRechargeDesktop
             var cbPort = new ComboBox
             {
                 Location = new System.Drawing.Point(140, 10),
-                Width = 180,
-                Name = "CbPort"
+                Width = 180
             };
             var btnLoadPorts = new Button
             {
                 Text = "Load Ports",
-                Location = new System.Drawing.Point(330, 10),
-                Name = "BtnLoadPorts"
+                Location = new System.Drawing.Point(330, 10)
             };
 
             // Operator
@@ -56,11 +55,10 @@ namespace AlgeriaRechargeDesktop
             var cbOperator = new ComboBox
             {
                 Location = new System.Drawing.Point(140, 50),
-                Width = 180,
-                Name = "CbOperator"
+                Width = 180
             };
 
-            // Phone or voucher
+            // Phone / voucher
             var lblPhone = new Label
             {
                 Text = "Phone / Voucher:",
@@ -70,8 +68,7 @@ namespace AlgeriaRechargeDesktop
             var tbPhone = new TextBox
             {
                 Location = new System.Drawing.Point(140, 90),
-                Width = 180,
-                Name = "TbPhone"
+                Width = 180
             };
 
             // Action buttons
@@ -79,15 +76,13 @@ namespace AlgeriaRechargeDesktop
             {
                 Text = "Recharge (Voucher)",
                 Location = new System.Drawing.Point(10, 140),
-                Width = 150,
-                Name = "BtnRecharge"
+                Width = 150
             };
             var btnBalance = new Button
             {
                 Text = "Check Balance",
                 Location = new System.Drawing.Point(180, 140),
-                Width = 150,
-                Name = "BtnBalance"
+                Width = 150
             };
 
             // Result box
@@ -102,11 +97,9 @@ namespace AlgeriaRechargeDesktop
                 Location = new System.Drawing.Point(10, 210),
                 Size = new System.Drawing.Size(440, 100),
                 Multiline = true,
-                ReadOnly = true,
-                Name = "TbResult"
+                ReadOnly = true
             };
 
-            // Add controls
             mainPanel.Controls.AddRange(new Control[]
             {
                 lblPort, cbPort, btnLoadPorts,
@@ -116,6 +109,14 @@ namespace AlgeriaRechargeDesktop
                 lblResult, tbResult
             });
             this.Controls.Add(mainPanel);
+
+            // Save controls for reuse
+            this.cbPort = cbPort;
+            this.cbOperator = cbOperator;
+            this.tbPhone = tbPhone;
+            this.btnRecharge = btnRecharge;
+            this.btnBalance = btnBalance;
+            this.tbResult = tbResult;
 
             // Events
             btnLoadPorts.Click += (s, e) =>
@@ -210,30 +211,13 @@ namespace AlgeriaRechargeDesktop
 
         private void Log(string msg)
         {
-            if (!IsHandleCreated) return;
-            Invoke(new Action(() =>
+            if (!this.IsHandleCreated) return;
+            this.Invoke(new Action(() =>
             {
-                var tb = GetControl<TextBox>("TbResult");
-                tb.Text += DateTime.Now.ToString("HH:mm:ss") + " - " + msg + Environment.NewLine;
-                tb.SelectionStart = tb.Text.Length;
-                tb.ScrollToCaret();
+                this.tbResult.Text += DateTime.Now.ToString("HH:mm:ss") + " - " + msg + Environment.NewLine;
+                this.tbResult.SelectionStart = this.tbResult.Text.Length;
+                this.tbResult.ScrollToCaret();
             }));
-        }
-
-        private Control GetControl(Control root, string name)
-        {
-            if (root.Name == name) return root;
-            foreach (Control c in root.Controls)
-            {
-                var found = GetControl(c, name);
-                if (found != null) return found;
-            }
-            return null;
-        }
-
-        private T GetControl<T>(string name) where T : Control
-        {
-            return (T)GetControl(this.Controls[0], name);
         }
 
         private bool SendUssd(string portName, string code)
@@ -258,33 +242,29 @@ namespace AlgeriaRechargeDesktop
                 port.Open();
                 System.Threading.Thread.Sleep(500);
 
-                if (!SendCommand(port, "AT", "OK"))
-                    goto ERROR;
-
-                if (!SendCommand(port, "ATE0", "OK"))
-                    goto ERROR;
+                if (!SendCommand(port, "AT", "OK")) return false;
+                if (!SendCommand(port, "ATE0", "OK")) return false;
 
                 if (!SendCommand(port, $"ATD{code};", "OK"))
-                    goto ERROR;
+                {
+                    Log($"Error sending USSD: {code}");
+                    return false;
+                }
 
                 port.Close();
                 port.Dispose();
                 return true;
-
-            ERROR:
-                Log($"Error sending USSD: {code}");
             }
             catch (Exception ex)
             {
                 Log($"Exception in SendUssd: {ex.Message}");
+                return false;
             }
             finally
             {
                 port?.Close();
                 port?.Dispose();
             }
-
-            return false;
         }
 
         private bool SendCommand(SerialPort port, string cmd, string expected)
@@ -307,4 +287,31 @@ namespace AlgeriaRechargeDesktop
         {
             var sb = new System.Text.StringBuilder();
             var buffer = new char[256];
-            int timeout = 
+            int timeout = 10;
+
+            while (timeout > 0)
+            {
+                try
+                {
+                    int count = port.Read(buffer, 0, buffer.Length);
+                    if (count > 0)
+                    {
+                        sb.Append(new string(buffer, 0, count));
+                        if (sb.ToString().Contains("OK") || sb.ToString().Contains("ERROR"))
+                            break;
+                    }
+                }
+                catch (TimeoutException) { break; }
+                catch (System.IO.IOException ex)
+                {
+                    Log($"Exception reading response: {ex.Message}");
+                    break;
+                }
+                System.Threading.Thread.Sleep(200);
+                timeout--;
+            }
+
+            return sb.ToString().Trim();
+        }
+    }
+}
