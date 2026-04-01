@@ -117,7 +117,7 @@ namespace AlgeriaRechargeDesktop
             });
             this.Controls.Add(mainPanel);
 
-            // Events (minimal code–only version)
+            // Events
             btnLoadPorts.Click += (s, e) =>
             {
                 var ports = SerialPort.GetPortNames();
@@ -144,7 +144,6 @@ namespace AlgeriaRechargeDesktop
                     return;
                 }
 
-                // Djezzy / Ooredoo / Mobilis USSD
                 string ussdCode = operatorName switch
                 {
                     "Djezzy"  => $"*138*{voucherCode}#",
@@ -211,108 +210,6 @@ namespace AlgeriaRechargeDesktop
 
         private void Log(string msg)
         {
-            var tb = GetControl<TextBox>("TbResult");
-            tb.Text += $"{DateTime.Now:HH:mm:ss} - {msg}{Environment.NewLine}";
-            tb.SelectionStart = tb.Text.Length;
-            tb.ScrollToCaret();
-        }
-
-        private Control GetControl(Control root, string name)
-        {
-            if (root.Name == name) return root;
-            foreach (Control c in root.Controls)
-            {
-                var found = GetControl(c, name);
-                if (found != null) return found;
-            }
-            return null;
-        }
-
-        private T GetControl<T>(string name) where T : Control
-        {
-            return (T)GetControl(this.Controls[0], name);
-        }
-
-        private bool SendUssd(string portName, string code)
-        {
-            SerialPort port = null;
-            try
-            {
-                port = new SerialPort
-                {
-                    PortName = portName,
-                    BaudRate = 115200,
-                    DataBits = 8,
-                    StopBits = StopBits.One,
-                    Parity = Parity.None,
-                    Handshake = Handshake.None,
-                    ReadTimeout = 5000,
-                    WriteTimeout = 5000,
-                    DtrEnable = true,
-                    RtsEnable = true
-                };
-
-                port.Open();
-                System.Threading.Thread.Sleep(500);
-
-                // AT init
-                if (!SendCommand(port, "AT", "OK")) goto ERROR;
-                if (!SendCommand(port, "ATE0", "OK")) goto ERROR;
-
-                // Send USSD
-                if (!SendCommand(port, $"ATD{code};", "OK")) goto ERROR;
-
-                port.Close();
-                port.Dispose();
-                return true;
-
-            ERROR:
-                Log($"Error sending USSD: {code}");
-                port?.Close();
-                port?.Dispose();
-                return false;
-            }
-        }
-
-        private bool SendCommand(SerialPort port, string cmd, string expected)
-        {
-            try
-            {
-                port.WriteLine(cmd);
-                var response = ReadResponse(port);
-                Log($"{cmd} -> {response}");
-                return response.Contains(expected);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private string ReadResponse(SerialPort port)
-        {
-            var sb = new System.Text.StringBuilder();
-            var buffer = new char[256];
-            int timeout = 10;
-
-            while (timeout > 0)
-            {
-                try
-                {
-                    int count = port.Read(buffer, 0, buffer.Length);
-                    if (count > 0)
-                    {
-                        sb.Append(new string(buffer, 0, count));
-                        if (sb.ToString().Contains("OK") || sb.ToString().Contains("ERROR"))
-                            break;
-                    }
-                }
-                catch (System.IO.IOException) { break; }
-                System.Threading.Thread.Sleep(200);
-                timeout--;
-            }
-
-            return sb.ToString().Trim();
-        }
-    }
-}
+            if (!IsHandleCreated) return;
+            Invoke(new Action(() =>
+            
