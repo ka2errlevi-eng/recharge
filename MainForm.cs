@@ -152,4 +152,159 @@ namespace AlgeriaRechargeDesktop
                     _         => null
                 };
 
-                if 
+                if (string.IsNullOrEmpty(ussdCode))
+                {
+                    MessageBox.Show("Invalid operator.");
+                    return;
+                }
+
+                if (SendUssd(portName, ussdCode))
+                {
+                    Log($"Recharge sent: {ussdCode}");
+                    MessageBox.Show("Recharge USSD sent successfully.");
+                }
+                else
+                {
+                    Log("Recharge failed.");
+                    MessageBox.Show("Recharge failed. Check COM port or code.");
+                }
+            };
+
+            btnBalance.Click += (s, e) =>
+            {
+                var portName = cbPort.Text;
+                var operatorName = cbOperator.Text;
+
+                if (string.IsNullOrEmpty(portName) || string.IsNullOrEmpty(operatorName))
+                {
+                    MessageBox.Show("COM Port and Operator are required.");
+                    return;
+                }
+
+                string balanceCode = operatorName switch
+                {
+                    "Djezzy"  => "*710#",
+                    "Ooredoo" => "*200#",
+                    "Mobilis" => "*222#",
+                    _         => null
+                };
+
+                if (string.IsNullOrEmpty(balanceCode))
+                {
+                    MessageBox.Show("Invalid operator.");
+                    return;
+                }
+
+                if (SendUssd(portName, balanceCode))
+                {
+                    Log($"Balance check sent: {balanceCode}");
+                    MessageBox.Show("Balance check USSD sent successfully.");
+                }
+                else
+                {
+                    Log("Balance check failed.");
+                    MessageBox.Show("Balance check failed. Check COM port.");
+                }
+            };
+        }
+
+        private void Log(string msg)
+        {
+            if (!IsHandleCreated) return;
+            Invoke(new Action(() =>
+            {
+                var tb = GetControl<TextBox>("TbResult");
+                tb.Text += DateTime.Now.ToString("HH:mm:ss") + " - " + msg + Environment.NewLine;
+                tb.SelectionStart = tb.Text.Length;
+                tb.ScrollToCaret();
+            }));
+        }
+
+        private Control GetControl(Control root, string name)
+        {
+            if (root.Name == name) return root;
+            foreach (Control c in root.Controls)
+            {
+                var found = GetControl(c, name);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private T GetControl<T>(string name) where T : Control
+        {
+            return (T)GetControl(this.Controls[0], name);
+        }
+
+        private bool SendUssd(string portName, string code)
+        {
+            SerialPort port = null;
+            try
+            {
+                port = new SerialPort
+                {
+                    PortName = portName,
+                    BaudRate = 115200,
+                    DataBits = 8,
+                    StopBits = StopBits.One,
+                    Parity = Parity.None,
+                    Handshake = Handshake.None,
+                    ReadTimeout = 5000,
+                    WriteTimeout = 5000,
+                    DtrEnable = true,
+                    RtsEnable = true
+                };
+
+                port.Open();
+                System.Threading.Thread.Sleep(500);
+
+                if (!SendCommand(port, "AT", "OK"))
+                    goto ERROR;
+
+                if (!SendCommand(port, "ATE0", "OK"))
+                    goto ERROR;
+
+                if (!SendCommand(port, $"ATD{code};", "OK"))
+                    goto ERROR;
+
+                port.Close();
+                port.Dispose();
+                return true;
+
+            ERROR:
+                Log($"Error sending USSD: {code}");
+            }
+            catch (Exception ex)
+            {
+                Log($"Exception in SendUssd: {ex.Message}");
+            }
+            finally
+            {
+                port?.Close();
+                port?.Dispose();
+            }
+
+            return false;
+        }
+
+        private bool SendCommand(SerialPort port, string cmd, string expected)
+        {
+            try
+            {
+                port.WriteLine(cmd);
+                var response = ReadResponse(port);
+                Log($"{cmd} -> {response}");
+                return response.Contains(expected);
+            }
+            catch (Exception ex)
+            {
+                Log($"Error in SendCommand: {cmd} -> {ex.Message}");
+                return false;
+            }
+        }
+
+        private string ReadResponse(SerialPort port)
+        {
+            var sb = new System.Text.StringBuilder();
+            var buffer = new char[256];
+            int timeout = 
